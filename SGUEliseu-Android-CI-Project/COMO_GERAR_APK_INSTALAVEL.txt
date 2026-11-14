@@ -1,0 +1,12 @@
+=========================================================
+COMO GERAR O .APK ASSINADO E INSTALAR NO SEU CELULAR
+=========================================================
+Este projeto já inclui o pipeline automático do GitHub Actions (.github/workflows/build-apk.yml) que compila o bytecode Dalvik (classes.dex) e assina o APK criptograficamente para instalar sem erros no Android / HyperOS / MIUI.
+
+PASSO A PASSO (100% GRATUITO):
+1. Crie um repositório no GitHub (https://github.com/new).
+2. Envie todos os arquivos desta pasta para o repositório (certifique-se de incluir a pasta .github).
+3. Acesse a aba "Actions" no seu repositório do GitHub.
+4. Aguarde ~2 minutos até o workflow "Build Android APK" ficar verde.
+5. Role até a seção "Artifacts" no final da página do build e baixe o arquivo ZIP contendo o app-debug.apk pronto para instalar no seu celular!
+=========================================================

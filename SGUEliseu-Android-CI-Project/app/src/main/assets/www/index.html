@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Desbravadores - Chamada e Avaliação</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jsPDF e jsPDF-AutoTable para geração de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Estilização customizada para os botões de rádio "Sim" e "Não" */
+        .radio-btn:checked + .label-sim {
+            background-color: #16a34a;
+            color: white;
+            border-color: #16a34a;
+            box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3);
+        }
+        .radio-btn:checked + .label-nao {
+            background-color: #dc2626;
+            color: white;
+            border-color: #dc2626;
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+        }
+        /* Estilo para abas ativas/inativas */
+        .tab-btn.active {
+            background-color: #16a34a;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .tab-btn:not(.active) {
+            background-color: rgba(38, 38, 38, 0.8);
+            color: #d4d4d4;
+        }
+        .tab-btn:not(.active):hover {
+            background-color: rgba(64, 64, 64, 0.9);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased pb-12">
+
+    <!-- Cabeçalho Principal (Cores da Unidade: Preto e Verde) -->
+    <header class="bg-neutral-950 text-white shadow-lg border-b-4 border-green-500">
+        <div class="max-w-5xl mx-auto px-4 pt-6 pb-4">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <!-- Escudo estilizado SVG -->
+                    <div class="w-14 h-14 bg-green-600 rounded-xl flex items-center justify-center shadow-inner shrink-0 border-2 border-green-400">
+                        <i class="fa-solid fa-campground text-neutral-950 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">Unidade Eliseu</h1>
+                        <p class="text-green-400 text-sm font-medium">Sistema de Gestão da Unidade</p>
+                    </div>
+                </div>
+                
+                <!-- Botão rápido para marcar todos como "Sim" (visível apenas na aba de chamada) -->
+                <button id="btn-marcar-todos" onclick="marcarTodosSim()" class="w-full sm:w-auto bg-neutral-900 hover:bg-neutral-800 text-green-400 border border-green-600 font-semibold py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center gap-2 shadow">
+                    <i class="fa-solid fa-check-double"></i>
+                    Marcar Todos "Sim"
+                </button>
+            </div>
+
+            <!-- Navegação por Abas -->
+            <nav class="flex gap-2 mt-6 border-t border-neutral-800 pt-4">
+                <button id="tab-chamada" onclick="alternarAba('chamada')" class="tab-btn active flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    Chamada e Avaliação
+                </button>
+                <button id="tab-cargos" onclick="alternarAba('cargos')" class="tab-btn flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-users-gear"></i>
+                    Cargos da Unidade
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-5xl mx-auto px-4 mt-8">
+        
+        <!-- ==================== ABA 1: CHAMADA E AVALIAÇÃO ==================== -->
+        <div id="conteudo-chamada">
+            <!-- Caixa Superior: Seleção do Dia do Ano e Resumo -->
+            <section class="bg-white rounded-2xl shadow-md p-6 mb-8 border border-gray-200">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div class="flex-1">
+                        <label for="data-reuniao" class="block text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
+                            <i class="fa-regular fa-calendar-days text-green-700 mr-1"></i> Selecione a Data da Reunião (Dia do Ano)
+                        </label>
+                        <input type="date" id="data-reuniao" 
+                            class="w-full md:w-72 bg-gray-50 border-2 border-gray-300 text-gray-900 text-base rounded-xl focus:ring-green-600 focus:border-green-600 block p-3 font-semibold transition cursor-pointer">
+                    </div>
+
+                    <!-- Painel de Resumo Rápido -->
+                    <div class="flex items-center gap-4 bg-green-50 px-5 py-3.5 rounded-xl border border-green-200">
+                        <div class="text-center pr-4 border-r border-green-200">
+                            <span class="block text-xs font-semibold text-neutral-700 uppercase">Desbravadores</span>
+                            <span class="text-2xl font-extrabold text-neutral-950" id="total-desbravadores">12</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="block text-xs font-semibold text-neutral-700 uppercase">Avaliados</span>
+                            <span class="text-2xl font-extrabold text-green-600" id="total-avaliados">0/12</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lista de Desbravadores -->
+            <section id="lista-desbravadores" class="space-y-6">
+                <!-- Os cards dos desbravadores serão inseridos aqui via JavaScript -->
+            </section>
+
+            <!-- Botão de Gerar Relatório em PDF no fim da Aba 1 -->
+            <section class="mt-10 bg-white rounded-2xl shadow-md p-6 border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-center sm:text-left">
+                    <h3 class="text-lg font-bold text-gray-900">Finalizar Chamada</h3>
+                    <p class="text-sm text-gray-500">Exporte os dados preenchidos acima para um documento PDF organizado.</p>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
+                    <button onclick="limparFormulario()" class="w-full sm:w-auto px-5 py-3.5 rounded-xl border-2 border-gray-300 text-gray-700 font-bold hover:bg-gray-100 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        Limpar
+                    </button>
+                    <button onclick="gerarPDF()" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-7 rounded-xl shadow-lg hover:shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2 text-base">
+                        <i class="fa-solid fa-file-pdf text-xl"></i>
+                        Gerar Relatório em PDF
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- ==================== ABA 2: CARGOS DA UNIDADE ==================== -->
+        <div id="conteudo-cargos" class="hidden">
+            <!-- Cabeçalho da Aba de Cargos -->
+            <section class="bg-white rounded-2xl shadow-md p-6 mb-8 border border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-neutral-950 flex items-center gap-2">
+                            <i class="fa-solid fa-id-badge text-green-600"></i>
+                            Distribuição de Cargos da Unidade
+                        </h2>
+                        <p class="text-sm text-gray-600 mt-1">Selecione a função de cada desbravador dentro da unidade.</p>
+                    </div>
+                    <div class="bg-green-50 border border-green-200 px-4 py-2.5 rounded-xl text-center">
+                        <span class="block text-xs font-bold text-green-800 uppercase">Com Cargo Definido</span>
+                        <span id="contador-cargos" class="text-xl font-extrabold text-neutral-950">0/12</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lista de Seleção de Cargos -->
+            <section id="lista-cargos" class="bg-white rounded-2xl shadow-md border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+                <!-- Inserido via JavaScript -->
+            </section>
+
+            <!-- Botão de Gerar Relatório em PDF no fim da Aba 2 -->
+            <section class="mt-10 bg-white rounded-2xl shadow-md p-6 border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-center sm:text-left">
+                    <h3 class="text-lg font-bold text-gray-900">Exportar Quadro de Cargos</h3>
+                    <p class="text-sm text-gray-500">Gere um relatório em PDF com a função de cada membro da unidade.</p>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
+                    <button onclick="limparCargos()" class="w-full sm:w-auto px-5 py-3.5 rounded-xl border-2 border-gray-300 text-gray-700 font-bold hover:bg-gray-100 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        Resetar Cargos
+                    </button>
+                    <button onclick="gerarPDFCargos()" class="w-full sm:w-auto bg-neutral-900 hover:bg-neutral-800 text-white font-bold py-3.5 px-7 rounded-xl shadow-lg hover:shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2 text-base border border-green-500">
+                        <i class="fa-solid fa-file-pdf text-xl text-green-400"></i>
+                        Gerar Relatório de Cargos (PDF)
+                    </button>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- Notificação Toast (Substituto elegante para alert()) -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-50 bg-neutral-950 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border-l-4 border-green-500">
+        <i id="toast-icon" class="fa-solid fa-circle-info text-green-400 text-xl"></i>
+        <span id="toast-msg" class="font-medium text-sm">Mensagem</span>
+    </div>
+
+    <script>
+        // Lista oficial dos Desbravadores fornecida
+        const desbravadores = [
+            "ARTHUR ARAUJO RIBEIRO",
+            "CARLOS SERGIO DIAS FREIRE",
+            "DAVI ALMEIDA DOS SANTOS SOARES",
+            "DAVI VINICIUS MARQUES MARANHÃO PONTES",
+            "ENZO FARIAS DUTRA",
+            "FERNANDO AQUINO MONTERIO",
+            "FRANCISCO RONNEY LIMA DINIZ",
+            "JOÃO CARLOS RIBEIRO DE OLIVEIRA",
+            "LEVI ANDRADE ROMÃO",
+            "MAYCON BRUNO PEREIRA SILVA",
+            "MIKAEL DOUGLAS AQUINO MONTEIRO",
+            "PAULO MARCOS GOMES DE PAIVA"
+        ];
+
+        // Critérios de avaliação separados (Presença e Pontualidade agora são independentes)
+        const criterios = [
+            { id: "presenca", label: "Presença", icon: "fa-user-check" },
+            { id: "pontualidade", label: "Pontualidade", icon: "fa-clock" },
+            { id: "uniforme", label: "Uso do uniforme correto", icon: "fa-shirt" },
+            { id: "biblia", label: "Porte da Bíblia", icon: "fa-book-bible" },
+            { id: "disciplina", label: "Participação e disciplina", icon: "fa-medal" }
+        ];
+
+        // Opções de cargos dentro da unidade
+        const cargosUnidade = [
+            "Sem Cargo",
+            "Capitão",
+            "Secretário",
+            "Tesoureiro",
+            "Almoxarife",
+            "Padioleiro",
+            "Capelão"
+        ];
+
+        // Inicialização ao carregar a página
+        document.addEventListener("DOMContentLoaded", () => {
+            // Definir a data de hoje como padrão no campo de data
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            document.getElementById("data-reuniao").value = `${ano}-${mes}-${dia}`;
+
+            renderizarLista();
+            renderizarCargos();
+        });
+
+        // Alterna entre a aba de Chamada e a aba de Cargos
+        function alternarAba(aba) {
+            const conteudoChamada = document.getElementById("conteudo-chamada");
+            const conteudoCargos = document.getElementById("conteudo-cargos");
+            const tabChamada = document.getElementById("tab-chamada");
+            const tabCargos = document.getElementById("tab-cargos");
+            const btnMarcarTodos = document.getElementById("btn-marcar-todos");
+
+            if (aba === "chamada") {
+                conteudoChamada.classList.remove("hidden");
+                conteudoCargos.classList.add("hidden");
+                tabChamada.classList.add("active");
+                tabCargos.classList.remove("active");
+                btnMarcarTodos.classList.remove("hidden");
+            } else {
+                conteudoChamada.classList.add("hidden");
+                conteudoCargos.classList.remove("hidden");
+                tabChamada.classList.remove("active");
+                tabCargos.classList.add("active");
+                btnMarcarTodos.classList.add("hidden");
+            }
+        }
+
+        // Função para mostrar mensagens amigáveis na tela
+        function mostrarNotificacao(mensagem, tipo = "info") {
+            const toast = document.getElementById("toast");
+            const toastMsg = document.getElementById("toast-msg");
+            const toastIcon = document.getElementById("toast-icon");
+
+            toastMsg.textContent = mensagem;
+            
+            if (tipo === "sucesso") {
+                toastIcon.className = "fa-solid fa-circle-check text-green-400 text-xl";
+                toast.classList.replace("border-red-500", "border-green-500");
+            } else if (tipo === "erro") {
+                toastIcon.className = "fa-solid fa-triangle-exclamation text-red-400 text-xl";
+                toast.classList.replace("border-green-500", "border-red-500");
+            } else {
+                toastIcon.className = "fa-solid fa-circle-info text-green-400 text-xl";
+                toast.className = "fixed bottom-5 right-5 transform transition-all duration-300 z-50 bg-neutral-950 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border-l-4 border-green-500";
+            }
+
+            toast.classList.remove("translate-y-20", "opacity-0");
+            
+            setTimeout(() => {
+                toast.classList.add("translate-y-20", "opacity-0");
+            }, 3500);
+        }
+
+        // Renderiza os cards de todos os desbravadores (Aba 1)
+        function renderizarLista() {
+            const container = document.getElementById("lista-desbravadores");
+            container.innerHTML = "";
+
+            desbravadores.forEach((nome, index) => {
+                const numero = index + 1;
+                const card = document.createElement("div");
+                card.className = "bg-white rounded-2xl shadow-sm hover:shadow-md transition border border-gray-200 overflow-hidden";
+
+                let htmlCriterios = criterios.map(crit => {
+                    const isPresenca = crit.id === "presenca";
+                    // Se for presença, ocupa a linha toda em telas médias para destaque
+                    const colSpanClass = isPresenca ? "md:col-span-2 bg-green-50/70 border-green-200" : "bg-gray-50 border-gray-100";
+                    const itemClass = isPresenca ? "" : `criterio-dependente-${index} transition-opacity duration-200`;
+
+                    return `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 px-4 rounded-xl border gap-3 ${colSpanClass} ${itemClass}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg ${isPresenca ? 'bg-neutral-900 text-green-400' : 'bg-green-100 text-green-900'} flex items-center justify-center shrink-0">
+                                <i class="fa-solid ${crit.icon} text-sm"></i>
+                            </div>
+                            <div>
+                                <span class="font-semibold text-gray-800 text-sm sm:text-base">${crit.label}</span>
+                                ${isPresenca ? '<span class="block text-xs text-green-800 font-medium">Se "Não", os demais itens serão bloqueados</span>' : ''}
+                            </div>
+                        </div>
+                        
+                        <!-- Botões Sim / Não -->
+                        <div class="flex items-center gap-2 self-end sm:self-center">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="dbv_${index}_${crit.id}" value="Sim" class="sr-only radio-btn" onchange="aoAlterarOpcao(${index}, '${crit.id}', 'Sim')">
+                                <span class="label-sim inline-flex items-center justify-center px-5 py-2 rounded-lg border-2 border-gray-300 bg-white text-gray-600 font-bold text-sm transition hover:border-green-500 select-none">
+                                    <i class="fa-solid fa-check mr-1.5"></i> Sim
+                                </span>
+                            </label>
+
+                            <label class="cursor-pointer">
+                                <input type="radio" name="dbv_${index}_${crit.id}" value="Não" class="sr-only radio-btn" onchange="aoAlterarOpcao(${index}, '${crit.id}', 'Não')">
+                                <span class="label-nao inline-flex items-center justify-center px-5 py-2 rounded-lg border-2 border-gray-300 bg-white text-gray-600 font-bold text-sm transition hover:border-red-500 select-none">
+                                    <i class="fa-solid fa-xmark mr-1.5"></i> Não
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+                }).join("");
+
+                card.innerHTML = `
+                    <div class="bg-gradient-to-r from-neutral-950 to-neutral-800 px-5 py-3.5 flex items-center justify-between border-b-2 border-green-500">
+                        <div class="flex items-center gap-3">
+                            <span class="w-7 h-7 rounded-full bg-green-500 text-neutral-950 font-extrabold text-sm flex items-center justify-center shrink-0">
+                                ${numero}
+                            </span>
+                            <h2 class="text-white font-bold text-base sm:text-lg tracking-wide">${nome}</h2>
+                        </div>
+                        <span id="status-badge-${index}" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-neutral-900 text-neutral-300 border border-neutral-700">
+                            Pendente
+                        </span>
+                    </div>
+                    <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${htmlCriterios}
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // Controla o bloqueio/desbloqueio dos critérios quando "Presença" é alterada
+        function aoAlterarOpcao(index, critId, valor) {
+            if (critId === "presenca") {
+                const bloquear = (valor === "Não");
+                aplicarBloqueioCriterios(index, bloquear);
+            }
+            atualizarContadores();
+        }
+
+        // Bloqueia ou desbloqueia visualmente e funcionalmente os critérios dependentes da presença
+        function aplicarBloqueioCriterios(index, bloquear) {
+            const containersDependentes = document.querySelectorAll(`.criterio-dependente-${index}`);
+            
+            criterios.forEach(crit => {
+                if (crit.id !== "presenca") {
+                    const inputs = document.querySelectorAll(`input[name="dbv_${index}_${crit.id}"]`);
+                    inputs.forEach(input => {
+                        input.disabled = bloquear;
+                        if (bloquear) {
+                            input.checked = false; // Limpa marcação anterior caso mude para "Não"
+                        }
+                    });
+                }
+            });
+
+            containersDependentes.forEach(div => {
+                if (bloquear) {
+                    div.classList.add("opacity-45", "pointer-events-none", "bg-gray-100");
+                } else {
+                    div.classList.remove("opacity-45", "pointer-events-none", "bg-gray-100");
+                }
+            });
+        }
+
+        // Atualiza a contagem de desbravadores totalmente avaliados
+        function atualizarContadores() {
+            let avaliadosCompletos = 0;
+
+            desbravadores.forEach((_, index) => {
+                const presencaEl = document.querySelector(`input[name="dbv_${index}_presenca"]:checked`);
+                const badge = document.getElementById(`status-badge-${index}`);
+
+                // Se marcou Presença = Não, já está concluído como Faltou
+                if (presencaEl && presencaEl.value === "Não") {
+                    avaliadosCompletos++;
+                    badge.textContent = "Faltou";
+                    badge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-red-600 text-white shadow-sm";
+                    return;
+                }
+
+                let marcados = 0;
+                criterios.forEach(crit => {
+                    const selecionado = document.querySelector(`input[name="dbv_${index}_${crit.id}"]:checked`);
+                    if (selecionado) marcados++;
+                });
+
+                if (marcados === criterios.length) {
+                    avaliadosCompletos++;
+                    badge.textContent = "Concluído";
+                    badge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-green-600 text-white shadow-sm";
+                } else if (marcados > 0) {
+                    badge.textContent = `${marcados}/${criterios.length}`;
+                    badge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-green-200 text-neutral-950";
+                } else {
+                    badge.textContent = "Pendente";
+                    badge.className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-neutral-900 text-neutral-300 border border-neutral-700";
+                }
+            });
+
+            document.getElementById("total-avaliados").textContent = `${avaliadosCompletos}/${desbravadores.length}`;
+        }
+
+        // Marca todos os itens de todos os desbravadores como "Sim" para agilizar
+        function marcarTodosSim() {
+            desbravadores.forEach((_, index) => {
+                aplicarBloqueioCriterios(index, false);
+            });
+            const radiosSim = document.querySelectorAll('input[type="radio"][value="Sim"]');
+            radiosSim.forEach(radio => {
+                radio.checked = true;
+            });
+            atualizarContadores();
+            mostrarNotificacao("Todos os critérios foram marcados como 'Sim'!", "sucesso");
+        }
+
+        // Limpa todas as marcações da chamada
+        function limparFormulario() {
+            const todosRadios = document.querySelectorAll('input[type="radio"]');
+            todosRadios.forEach(radio => {
+                radio.checked = false;
+                radio.disabled = false;
+            });
+            desbravadores.forEach((_, index) => {
+                aplicarBloqueioCriterios(index, false);
+            });
+            atualizarContadores();
+            mostrarNotificacao("Todas as marcações foram limpas.");
+        }
+
+        // Gera e baixa o arquivo PDF com os resultados da Chamada
+        function gerarPDF() {
+            const dataInput = document.getElementById("data-reuniao").value;
+            
+            if (!dataInput) {
+                mostrarNotificacao("Por favor, selecione a data da reunião no topo da página.", "erro");
+                document.getElementById("data-reuniao").focus();
+                return;
+            }
+
+            // Formatar data de YYYY-MM-DD para DD/MM/YYYY
+            const [ano, mes, dia] = dataInput.split("-");
+            const dataFormatada = `${dia}/${mes}/${ano}`;
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Cabeçalho do PDF (Preto e Verde)
+                doc.setFillColor(10, 10, 10); // Preto (neutral-950)
+                doc.rect(0, 0, 210, 32, 'F');
+
+                // Faixa verde decorativa
+                doc.setFillColor(34, 197, 94); // Verde (green-500)
+                doc.rect(0, 32, 210, 2.5, 'F');
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(18);
+                doc.text("RELATÓRIO DE AVALIAÇÃO - UNIDADE ELISEU", 14, 15);
+
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(11);
+                doc.setTextColor(134, 239, 172); // Verde claro (green-300)
+                doc.text(`Data da Reunião: ${dataFormatada}`, 14, 24);
+
+                // Preparar dados para a tabela (agora com Presença e Pontualidade separadas)
+                const colunas = [
+                    "Nº",
+                    "Nome do Desbravador",
+                    "Presença",
+                    "Pontual.",
+                    "Uniforme",
+                    "Bíblia",
+                    "Part./Disc."
+                ];
+
+                const linhas = desbravadores.map((nome, index) => {
+                    const presencaEl = document.querySelector(`input[name="dbv_${index}_presenca"]:checked`);
+                    const presencaVal = presencaEl ? presencaEl.value : "-";
+
+                    const getValor = (critId) => {
+                        if (presencaVal === "Não") return "Bloq.";
+                        const el = document.querySelector(`input[name="dbv_${index}_${critId}"]:checked`);
+                        return el ? el.value : "-";
+                    };
+
+                    return [
+                        index + 1,
+                        nome,
+                        presencaVal,
+                        getValor("pontualidade"),
+                        getValor("uniforme"),
+                        getValor("biblia"),
+                        getValor("disciplina")
+                    ];
+                });
+
+                // Gerar tabela estilizada no PDF
+                doc.autoTable({
+                    startY: 42,
+                    head: [colunas],
+                    body: linhas,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [23, 23, 23], // neutral-900
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold',
+                        halign: 'center',
+                        fontSize: 8.5
+                    },
+                    columnStyles: {
+                        0: { halign: 'center', cellWidth: 9 },
+                        1: { halign: 'left', cellWidth: 73, fontStyle: 'bold' },
+                        2: { halign: 'center', cellWidth: 20 },
+                        3: { halign: 'center', cellWidth: 20 },
+                        4: { halign: 'center', cellWidth: 20 },
+                        5: { halign: 'center', cellWidth: 18 },
+                        6: { halign: 'center', cellWidth: 22 }
+                    },
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 3.5,
+                        valign: 'middle'
+                    },
+                    // Colorir células de "Sim" (verde), "Não" (vermelho) e "Bloq." (cinza)
+                    didParseCell: function(data) {
+                        if (data.section === 'body' && data.column.index >= 2) {
+                            if (data.cell.raw === 'Sim') {
+                                data.cell.styles.textColor = [22, 163, 74];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if (data.cell.raw === 'Não') {
+                                data.cell.styles.textColor = [220, 38, 38];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if (data.cell.raw === 'Bloq.') {
+                                data.cell.styles.textColor = [156, 163, 175];
+                                data.cell.styles.fontStyle = 'italic';
+                            }
+                        }
+                    }
+                });
+
+                // Rodapé do PDF
+                const finalY = doc.lastAutoTable.finalY || 180;
+                doc.setFontSize(9);
+                doc.setTextColor(100, 116, 139);
+                doc.text("Assinatura do Conselheiro(a): ___________________________________________", 14, finalY + 20);
+
+                // Salvar o arquivo
+                doc.save(`Relatorio_Chamada_Unidade_Eliseu_${dia}-${mes}-${ano}.pdf`);
+                mostrarNotificacao("Relatório PDF da chamada gerado com sucesso!", "sucesso");
+
+            } catch (erro) {
+                console.error("Erro ao gerar PDF:", erro);
+                mostrarNotificacao("Ocorreu um erro ao gerar o PDF. Tente novamente.", "erro");
+            }
+        }
+
+        // ==================== FUNÇÕES DA ABA 2: CARGOS DA UNIDADE ====================
+
+        // Renderiza a lista de desbravadores com o seletor de cargos ao lado
+        function renderizarCargos() {
+            const container = document.getElementById("lista-cargos");
+            container.innerHTML = "";
+
+            desbravadores.forEach((nome, index) => {
+                const numero = index + 1;
+                const row = document.createElement("div");
+                row.className = "p-4 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-green-50/40 transition";
+
+                const opcoesHTML = cargosUnidade.map(cargo => 
+                    `<option value="${cargo}">${cargo}</option>`
+                ).join("");
+
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-7 h-7 rounded-full bg-neutral-900 text-green-400 font-extrabold text-xs flex items-center justify-center shrink-0">
+                            ${numero}
+                        </span>
+                        <span class="font-bold text-gray-800 text-sm sm:text-base">${nome}</span>
+                    </div>
+
+                    <div class="w-full sm:w-64">
+                        <select id="cargo-dbv-${index}" onchange="atualizarContadorCargos()" 
+                            class="w-full bg-gray-50 border-2 border-gray-300 text-gray-800 text-sm font-semibold rounded-xl focus:ring-green-600 focus:border-green-600 block p-2.5 transition cursor-pointer">
+                            ${opcoesHTML}
+                        </select>
+                    </div>
+                `;
+
+                container.appendChild(row);
+            });
+        }
+
+        // Atualiza o contador de desbravadores com cargo diferente de "Sem Cargo"
+        function atualizarContadorCargos() {
+            let comCargo = 0;
+            desbravadores.forEach((_, index) => {
+                const select = document.getElementById(`cargo-dbv-${index}`);
+                if (select && select.value !== "Sem Cargo") {
+                    comCargo++;
+                    select.classList.add("border-green-500", "bg-green-50/70", "text-neutral-950");
+                    select.classList.remove("border-gray-300", "bg-gray-50");
+                } else if (select) {
+                    select.classList.remove("border-green-500", "bg-green-50/70", "text-neutral-950");
+                    select.classList.add("border-gray-300", "bg-gray-50");
+                }
+            });
+            document.getElementById("contador-cargos").textContent = `${comCargo}/${desbravadores.length}`;
+        }
+
+        // Reseta todos os cargos para "Sem Cargo"
+        function limparCargos() {
+            desbravadores.forEach((_, index) => {
+                const select = document.getElementById(`cargo-dbv-${index}`);
+                if (select) select.value = "Sem Cargo";
+            });
+            atualizarContadorCargos();
+            mostrarNotificacao("Todos os cargos foram resetados para 'Sem Cargo'.");
+        }
+
+        // Gera relatório em PDF dos Cargos da Unidade
+        function gerarPDFCargos() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Cabeçalho do PDF (Preto e Verde)
+                doc.setFillColor(10, 10, 10);
+                doc.rect(0, 0, 210, 32, 'F');
+
+                doc.setFillColor(34, 197, 94);
+                doc.rect(0, 32, 210, 2.5, 'F');
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(18);
+                doc.text("QUADRO DE CARGOS - UNIDADE ELISEU", 14, 15);
+
+                const hoje = new Date().toLocaleDateString('pt-BR');
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(11);
+                doc.setTextColor(134, 239, 172);
+                doc.text(`Data de Emissão: ${hoje}`, 14, 24);
+
+                const colunas = ["Nº", "Nome do Desbravador", "Cargo na Unidade"];
+
+                const linhas = desbravadores.map((nome, index) => {
+                    const select = document.getElementById(`cargo-dbv-${index}`);
+                    const cargo = select ? select.value : "Sem Cargo";
+                    return [index + 1, nome, cargo];
+                });
+
+                doc.autoTable({
+                    startY: 42,
+                    head: [colunas],
+                    body: linhas,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [23, 23, 23],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold',
+                        halign: 'center',
+                        fontSize: 9.5
+                    },
+                    columnStyles: {
+                        0: { halign: 'center', cellWidth: 14 },
+                        1: { halign: 'left', cellWidth: 112, fontStyle: 'bold' },
+                        2: { halign: 'center', cellWidth: 56 }
+                    },
+                    styles: {
+                        fontSize: 9,
+                        cellPadding: 4,
+                        valign: 'middle'
+                    },
+                    didParseCell: function(data) {
+                        if (data.section === 'body' && data.column.index === 2) {
+                            if (data.cell.raw !== 'Sem Cargo') {
+                                data.cell.styles.textColor = [22, 163, 74];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else {
+                                data.cell.styles.textColor = [107, 114, 128];
+                            }
+                        }
+                    }
+                });
+
+                const finalY = doc.lastAutoTable.finalY || 180;
+                doc.setFontSize(9);
+                doc.setTextColor(100, 116, 139);
+                doc.text("Assinatura do Conselheiro(a): ___________________________________________", 14, finalY + 20);
+
+                doc.save(`Cargos_Unidade_Eliseu.pdf`);
+                mostrarNotificacao("Relatório de Cargos gerado em PDF com sucesso!", "sucesso");
+
+            } catch (erro) {
+                console.error("Erro ao gerar PDF de cargos:", erro);
+                mostrarNotificacao("Ocorreu um erro ao gerar o PDF. Tente novamente.", "erro");
+            }
+        }
+    </script>
+</body>
+</html>
